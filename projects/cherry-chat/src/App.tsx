@@ -9,7 +9,7 @@ export default function App() {
 
   return (
     <ChatProvider>
-      <div className="flex h-screen w-screen overflow-hidden">
+      <div className="flex h-full w-full overflow-hidden">
         {/* Mobile sidebar overlay backdrop */}
         {sidebarOpen && (
           <div
