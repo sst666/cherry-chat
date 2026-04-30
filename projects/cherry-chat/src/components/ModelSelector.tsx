@@ -65,7 +65,7 @@ export default function ModelSelector() {
       </button>
 
       {open && (
-        <div className="absolute top-full mt-1 right-0 w-72 bg-white border border-[#e5e7eb] rounded-xl shadow-lg z-40 overflow-hidden">
+        <div className="absolute top-full mt-1 left-0 right-0 sm:left-auto sm:w-72 w-full bg-white border border-[#e5e7eb] rounded-xl shadow-lg z-40 overflow-hidden max-h-[60vh] sm:max-h-72 overflow-y-auto">
           {/* Search */}
           <div className="p-2 border-b border-[#e5e7eb]">
             <div className="relative">
@@ -74,12 +74,11 @@ export default function ModelSelector() {
                 className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6b7280]"
               />
               <input
-                autoFocus
                 type="text"
                 placeholder="搜索模型..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-7 pr-3 py-1.5 text-xs border border-[#e5e7eb] rounded-lg outline-none focus:border-[#4f46e5]"
+                className="w-full pl-7 pr-3 py-1.5 text-sm border border-[#e5e7eb] rounded-lg outline-none focus:border-[#4f46e5]"
               />
             </div>
           </div>

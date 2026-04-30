@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, RefreshCw, Edit3 } from 'lucide-react';
+import { Copy, Check, RefreshCw, Edit3, Trash2 } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
 import type { Message } from '../types';
 
@@ -90,6 +90,14 @@ export default function MessageBubble({ message }: Props) {
     dispatch({
       type: 'DELETE_MESSAGE',
       payload: { convId: state.currentConvId!, messageId: message.id },
+    });
+  }
+
+  function handleDelete() {
+    if (!state.currentConvId || state.isLoading) return;
+    dispatch({
+      type: 'DELETE_MESSAGE',
+      payload: { convId: state.currentConvId, messageId: message.id },
     });
   }
 
@@ -187,6 +195,16 @@ export default function MessageBubble({ message }: Props) {
               编辑
             </button>
           )}
+
+          {/* Delete */}
+          <button
+            onClick={handleDelete}
+            disabled={state.isLoading}
+            className="flex items-center gap-1 px-2 py-1 text-[10px] text-[#6b7280] hover:text-[#ef4444] hover:bg-red-50 rounded transition-colors disabled:opacity-40"
+          >
+            <Trash2 size={11} />
+            删除
+          </button>
 
           {/* Regenerate (last assistant message only) */}
           {!isUser && isLastAssistant && (
