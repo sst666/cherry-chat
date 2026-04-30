@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw, Star } from 'lucide-react';
+import { X, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw, Star, Trash2 } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
 import type { ApiConfig } from '../types';
 
@@ -65,6 +65,16 @@ export default function SettingsPanel() {
       setTestStatus('error');
       setTestMsg('获取模型列表失败');
     }
+  }
+
+  function handleClearAttachments() {
+    const total = state.conversations.reduce(
+      (sum, c) => sum + c.messages.filter((m) => m.images && m.images.length > 0).length,
+      0
+    );
+    dispatch({ type: 'CLEAR_ATTACHMENTS' });
+    setTestStatus('ok');
+    setTestMsg(`已清除 ${total} 条含附件的消息`);
   }
 
   const isFavorite = state.favoriteModels.includes(form.model);
@@ -213,6 +223,20 @@ export default function SettingsPanel() {
               <span className="text-xs">{testMsg}</span>
             </div>
           )}
+
+          {/* Clear attachments */}
+          <div className="pt-1">
+            <button
+              onClick={handleClearAttachments}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-colors w-full justify-center"
+            >
+              <Trash2 size={13} />
+              清除图片和文件缓存
+            </button>
+            <p className="text-[10px] text-[#9ca3af] text-center mt-1">
+              仅清除图片和PDF附件，文字消息保留
+            </p>
+          </div>
         </div>
 
         {/* Footer */}

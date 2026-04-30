@@ -54,7 +54,8 @@ type Action =
   | { type: 'ADD_RECENT_MODEL'; payload: string }
   | { type: 'SET_MODEL'; payload: string }
   | { type: 'SET_MODELS'; payload: string[] }
-  | { type: 'TOGGLE_FAVORITE_MODEL'; payload: string };
+  | { type: 'TOGGLE_FAVORITE_MODEL'; payload: string }
+  | { type: 'CLEAR_ATTACHMENTS' };
 
 function createConversation(model: string): Conversation {
   const now = Date.now();
@@ -150,6 +151,14 @@ function reducer(state: State, action: Action): State {
         : [...state.favoriteModels, action.payload];
       saveJson(LS_FAVORITE_MODELS, fav);
       return { ...state, favoriteModels: fav };
+    }
+    case 'CLEAR_ATTACHMENTS': {
+      const conversations = state.conversations.map((c) => ({
+        ...c,
+        messages: c.messages.map((m) => ({ ...m, images: undefined })),
+      }));
+      saveJson(LS_CONVERSATIONS, conversations);
+      return { ...state, conversations };
     }
     default:
       return state;
