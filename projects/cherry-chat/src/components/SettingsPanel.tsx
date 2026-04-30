@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw, Star, Trash2 } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
 import type { ApiConfig } from '../types';
@@ -9,6 +9,15 @@ export default function SettingsPanel() {
   const [showKey, setShowKey] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
   const [testMsg, setTestMsg] = useState('');
+
+  // Listen for open-settings event from mobile header
+  useEffect(() => {
+    function onOpen() {
+      dispatch({ type: 'TOGGLE_SETTINGS' });
+    }
+    window.addEventListener('cherrychat:open-settings', onOpen);
+    return () => window.removeEventListener('cherrychat:open-settings', onOpen);
+  }, [dispatch]);
 
   if (!state.settingsOpen) return null;
 

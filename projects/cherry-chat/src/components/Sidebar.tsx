@@ -1,13 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, MessageSquare, Trash2, Settings, X } from 'lucide-react';
+import { Plus, Search, MessageSquare, Trash2, Settings } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
 import type { Conversation } from '../types';
 
-interface SidebarProps {
-  onCloseMobile?: () => void;
-}
+interface SidebarProps {}
 
-export default function Sidebar({ onCloseMobile }: SidebarProps) {
+export default function Sidebar({}: SidebarProps) {
   const { state, dispatch } = useChatContext();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -25,7 +23,6 @@ export default function Sidebar({ onCloseMobile }: SidebarProps) {
 
   function handleSelect(id: string) {
     dispatch({ type: 'SELECT_CONVERSATION', payload: id });
-    onCloseMobile?.();
   }
 
   function handleDelete(e: React.MouseEvent, id: string) {
@@ -65,13 +62,6 @@ export default function Sidebar({ onCloseMobile }: SidebarProps) {
           </span>
         </div>
         <div className="flex items-center gap-1">
-          {/* Mobile close button */}
-          <button
-            onClick={onCloseMobile}
-            className="p-1.5 rounded-lg text-[#6b7280] hover:text-[#111827] hover:bg-[#e5e7eb] transition-colors md:hidden"
-          >
-            <X size={16} />
-          </button>
           <button
             onClick={() => dispatch({ type: 'TOGGLE_SETTINGS' })}
             className="p-1.5 rounded-lg text-[#6b7280] hover:text-[#111827] hover:bg-[#e5e7eb] transition-colors"
