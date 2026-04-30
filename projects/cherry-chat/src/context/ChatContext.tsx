@@ -10,6 +10,7 @@ const LS_SETTINGS = 'bywlai-settings';
 const LS_CONVERSATIONS = 'bywlai-conversations';
 const LS_CURRENT_ID = 'bywlai-current-conv-id';
 const LS_RECENT_MODELS = 'bywlai-recent-models';
+const LS_FAVORITE_MODELS = 'bywlai-favorite-models';
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -33,6 +34,7 @@ interface State {
   currentConvId: string | null;
   config: ApiConfig;
   recentModels: string[];
+  favoriteModels: string[];
   models: string[];
   isLoading: boolean;
   settingsOpen: boolean;
@@ -51,7 +53,8 @@ type Action =
   | { type: 'SET_SEARCH'; payload: string }
   | { type: 'ADD_RECENT_MODEL'; payload: string }
   | { type: 'SET_MODEL'; payload: string }
-  | { type: 'SET_MODELS'; payload: string[] };
+  | { type: 'SET_MODELS'; payload: string[] }
+  | { type: 'TOGGLE_FAVORITE_MODEL'; payload: string };
 
 function createConversation(model: string): Conversation {
   const now = Date.now();
@@ -126,7 +129,7 @@ function reducer(state: State, action: Action): State {
       const recentModels = [
         action.payload,
         ...state.recentModels.filter((m) => m !== action.payload),
-      ].slice(0, 5);
+      ].slice(0, 8);
       saveJson(LS_RECENT_MODELS, recentModels);
       return { ...state, recentModels };
     }
@@ -141,6 +144,13 @@ function reducer(state: State, action: Action): State {
     }
     case 'SET_MODELS':
       return { ...state, models: action.payload };
+    case 'TOGGLE_FAVORITE_MODEL': {
+      const fav = state.favoriteModels.includes(action.payload)
+        ? state.favoriteModels.filter((m) => m !== action.payload)
+        : [...state.favoriteModels, action.payload];
+      saveJson(LS_FAVORITE_MODELS, fav);
+      return { ...state, favoriteModels: fav };
+    }
     default:
       return state;
   }
@@ -170,11 +180,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         ? savedId
         : conversations[0]?.id ?? null;
     const recentModels = loadJson<string[]>(LS_RECENT_MODELS, []);
+    const favoriteModels = loadJson<string[]>(LS_FAVORITE_MODELS, []);
     return {
       conversations,
       currentConvId,
       config,
       recentModels,
+      favoriteModels,
       models: [],
       isLoading: false,
       settingsOpen: !config.apiKey,

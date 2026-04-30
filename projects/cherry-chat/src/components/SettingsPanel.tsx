@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { X, Eye, EyeOff, CheckCircle, AlertCircle, RefreshCw, Star } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
 import type { ApiConfig } from '../types';
 
@@ -61,11 +61,17 @@ export default function SettingsPanel() {
       const list = await fetchModels(form.endpoint, form.apiKey);
       setTestStatus('ok');
       setTestMsg(`模型已同步 (${list.length}个)`);
-    } catch (err) {
+    } catch {
       setTestStatus('error');
       setTestMsg('获取模型列表失败');
     }
   }
+
+  const isFavorite = state.favoriteModels.includes(form.model);
+  const allModelOptions = [
+    ...state.favoriteModels,
+    ...state.models.filter((m) => !state.favoriteModels.includes(m)),
+  ];
 
   return (
     <div
@@ -79,9 +85,7 @@ export default function SettingsPanel() {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb]">
-          <h2 className="text-base font-semibold text-[#111827]">
-            API 设置
-          </h2>
+          <h2 className="text-base font-semibold text-[#111827]">API 设置</h2>
           <button
             onClick={() => dispatch({ type: 'TOGGLE_SETTINGS' })}
             className="p-1.5 rounded-lg text-[#6b7280] hover:text-[#111827] hover:bg-[#f3f4f6] transition-colors"
@@ -133,26 +137,63 @@ export default function SettingsPanel() {
             </div>
           </div>
 
-          {/* Model */}
+          {/* Default Model — dropdown with favorites */}
           <div>
-            <label className="block text-xs font-medium text-[#374151] mb-1.5">
-              默认模型
-            </label>
-            <input
-              type="text"
-              value={form.model}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, model: e.target.value }))
-              }
-              placeholder="claude-sonnet-4-6"
-              className="w-full px-3 py-2.5 text-sm border border-[#e5e7eb] rounded-xl outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/20 transition-all"
-            />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-medium text-[#374151]">
+                默认模型
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  dispatch({ type: 'TOGGLE_FAVORITE_MODEL', payload: form.model })
+                }
+                className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-colors ${
+                  isFavorite
+                    ? 'text-amber-600 bg-amber-50'
+                    : 'text-[#9ca3af] hover:text-amber-500'
+                }`}
+              >
+                <Star
+                  size={12}
+                  fill={isFavorite ? 'currentColor' : 'none'}
+                />
+                {isFavorite ? '已添加常用' : '加入常用'}
+              </button>
+            </div>
+
+            {state.models.length > 0 ? (
+              <select
+                value={form.model}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, model: e.target.value }))
+                }
+                className="w-full px-3 py-2.5 text-sm border border-[#e5e7eb] rounded-xl outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/20 transition-all bg-white"
+              >
+                {allModelOptions.map((m) => (
+                  <option key={m} value={m}>
+                    {state.favoriteModels.includes(m) ? '⭐ ' : ''}
+                    {m}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={form.model}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, model: e.target.value }))
+                }
+                placeholder="claude-sonnet-4-6"
+                className="w-full px-3 py-2.5 text-sm border border-[#e5e7eb] rounded-xl outline-none focus:border-[#4f46e5] focus:ring-2 focus:ring-[#4f46e5]/20 transition-all"
+              />
+            )}
           </div>
 
           {/* Test result */}
           {testStatus !== 'idle' && (
             <div
-              className={`flex items-start gap-2 px-3 py-2.5 rounded-xl text-sm ${
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm ${
                 testStatus === 'ok'
                   ? 'bg-green-50 text-green-700'
                   : testStatus === 'error'
@@ -160,9 +201,15 @@ export default function SettingsPanel() {
                   : 'bg-[#f5f3ff] text-[#4f46e5]'
               }`}
             >
-              {testStatus === 'ok' && <CheckCircle size={16} className="mt-0.5 shrink-0" />}
-              {testStatus === 'error' && <AlertCircle size={16} className="mt-0.5 shrink-0" />}
-              {testStatus === 'loading' && <RefreshCw size={16} className="mt-0.5 shrink-0 animate-spin" />}
+              {testStatus === 'ok' && (
+                <CheckCircle size={16} className="shrink-0" />
+              )}
+              {testStatus === 'error' && (
+                <AlertCircle size={16} className="shrink-0" />
+              )}
+              {testStatus === 'loading' && (
+                <RefreshCw size={16} className="shrink-0 animate-spin" />
+              )}
               <span className="text-xs">{testMsg}</span>
             </div>
           )}
@@ -175,7 +222,10 @@ export default function SettingsPanel() {
             disabled={testStatus === 'loading'}
             className="px-4 py-2 text-xs font-medium text-[#4f46e5] border border-[#4f46e5] rounded-xl hover:bg-[#f5f3ff] transition-colors disabled:opacity-50 flex items-center gap-1.5"
           >
-            <RefreshCw size={13} className={testStatus === 'loading' ? 'animate-spin' : ''} />
+            <RefreshCw
+              size={13}
+              className={testStatus === 'loading' ? 'animate-spin' : ''}
+            />
             获取模型列表
           </button>
           <div className="flex gap-2">
@@ -186,11 +236,18 @@ export default function SettingsPanel() {
               取消
             </button>
             <button
-              onClick={() => { handleTest(); handleSave(); }}
+              onClick={() => {
+                handleTest();
+                handleSave();
+              }}
               className="px-5 py-2 text-sm font-medium text-white rounded-xl transition-colors"
               style={{ background: '#4f46e5' }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#4338ca')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#4f46e5')}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = '#4338ca')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = '#4f46e5')
+              }
             >
               保存
             </button>

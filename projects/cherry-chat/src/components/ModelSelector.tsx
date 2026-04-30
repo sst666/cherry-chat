@@ -1,24 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Search, Clock } from 'lucide-react';
+import { ChevronDown, Search, Star, Clock } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
-
-const ALL_MODELS = [
-  'claude-opus-4-7',
-  'claude-sonnet-4-6',
-  'claude-haiku-4-5-20251001',
-  'claude-opus-4-5',
-  'claude-sonnet-4-5',
-  'claude-haiku-4-5',
-  'claude-3-5-sonnet-20241022',
-  'claude-3-5-haiku-20241022',
-  'claude-3-opus-20240229',
-  'gpt-4o',
-  'gpt-4o-mini',
-  'gpt-4-turbo',
-  'gpt-3.5-turbo',
-  'gemini-1.5-pro',
-  'gemini-1.5-flash',
-];
 
 export default function ModelSelector() {
   const { state, dispatch, currentConversation } = useChatContext();
@@ -26,8 +8,7 @@ export default function ModelSelector() {
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
 
-  const currentModel =
-    currentConversation?.model ?? state.config.model;
+  const currentModel = currentConversation?.model ?? state.config.model;
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -40,22 +21,33 @@ export default function ModelSelector() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const filtered = ALL_MODELS.filter((m) =>
-    m.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const recents = state.recentModels.filter((m) =>
-    m.toLowerCase().includes(search.toLowerCase())
-  );
-
   function select(model: string) {
     dispatch({ type: 'SET_MODEL', payload: model });
+    dispatch({ type: 'ADD_RECENT_MODEL', payload: model });
     setOpen(false);
     setSearch('');
   }
 
+  function toggleFavorite(e: React.MouseEvent, model: string) {
+    e.stopPropagation();
+    dispatch({ type: 'TOGGLE_FAVORITE_MODEL', payload: model });
+  }
+
+  const q = search.toLowerCase();
+
+  const favoriteFiltered = state.favoriteModels.filter((m) =>
+    m.toLowerCase().includes(q)
+  );
+  const recentFiltered = state.recentModels
+    .filter((m) => !state.favoriteModels.includes(m))
+    .filter((m) => m.toLowerCase().includes(q));
+  const allFiltered = state.models
+    .filter((m) => !state.favoriteModels.includes(m))
+    .filter((m) => !state.recentModels.includes(m))
+    .filter((m) => m.toLowerCase().includes(q));
+
   function shortName(model: string): string {
-    return model.length > 24 ? model.slice(0, 22) + '…' : model;
+    return model.length > 22 ? model.slice(0, 20) + '…' : model;
   }
 
   return (
@@ -65,19 +57,26 @@ export default function ModelSelector() {
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#374151] bg-white border border-[#e5e7eb] rounded-lg hover:border-[#4f46e5] hover:text-[#4f46e5] transition-colors"
       >
         <span>{shortName(currentModel)}</span>
-        <ChevronDown size={12} className={open ? 'rotate-180' : ''} style={{ transition: 'transform 0.15s' }} />
+        <ChevronDown
+          size={12}
+          className={open ? 'rotate-180' : ''}
+          style={{ transition: 'transform 0.15s' }}
+        />
       </button>
 
       {open && (
-        <div className="absolute top-full mt-1 right-0 w-64 bg-white border border-[#e5e7eb] rounded-xl shadow-lg z-40 overflow-hidden">
+        <div className="absolute top-full mt-1 right-0 w-72 bg-white border border-[#e5e7eb] rounded-xl shadow-lg z-40 overflow-hidden">
           {/* Search */}
           <div className="p-2 border-b border-[#e5e7eb]">
             <div className="relative">
-              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6b7280]" />
+              <Search
+                size={12}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6b7280]"
+              />
               <input
                 autoFocus
                 type="text"
-                placeholder="Search models..."
+                placeholder="搜索模型..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-7 pr-3 py-1.5 text-xs border border-[#e5e7eb] rounded-lg outline-none focus:border-[#4f46e5]"
@@ -85,43 +84,73 @@ export default function ModelSelector() {
             </div>
           </div>
 
-          <div className="max-h-64 overflow-y-auto">
-            {/* Recent */}
-            {recents.length > 0 && (
+          <div className="max-h-72 overflow-y-auto">
+            {/* Favorites */}
+            {favoriteFiltered.length > 0 && (
               <div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-[#6b7280] uppercase tracking-wide">
-                  <Clock size={10} />
-                  Recent
+                <div className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-[#d97706] uppercase tracking-wide">
+                  <Star size={10} />
+                  常用模型
                 </div>
-                {recents.map((m) => (
+                {favoriteFiltered.map((m) => (
                   <ModelOption
-                    key={`recent-${m}`}
+                    key={`fav-${m}`}
                     model={m}
                     active={m === currentModel}
                     onSelect={select}
+                    starred
+                    onToggleFavorite={toggleFavorite}
                   />
                 ))}
                 <div className="border-t border-[#e5e7eb] my-1" />
               </div>
             )}
 
-            {/* All */}
-            <div className="px-3 py-1.5 text-[10px] font-semibold text-[#6b7280] uppercase tracking-wide">
-              All Models
-            </div>
-            {filtered.map((m) => (
-              <ModelOption
-                key={m}
-                model={m}
-                active={m === currentModel}
-                onSelect={select}
-              />
-            ))}
-            {filtered.length === 0 && (
-              <p className="text-xs text-[#6b7280] text-center py-3">
-                No models found
-              </p>
+            {/* Recent */}
+            {state.recentModels.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-[#6b7280] uppercase tracking-wide">
+                  <Clock size={10} />
+                  最近使用
+                </div>
+                {recentFiltered.slice(0, 8).map((m) => (
+                  <ModelOption
+                    key={`recent-${m}`}
+                    model={m}
+                    active={m === currentModel}
+                    onSelect={select}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))}
+                <div className="border-t border-[#e5e7eb] my-1" />
+              </div>
             )}
+
+            {/* All models */}
+            {allFiltered.length > 0 && (
+              <div>
+                <div className="px-3 py-1.5 text-[10px] font-semibold text-[#6b7280] uppercase tracking-wide">
+                  所有模型
+                </div>
+                {allFiltered.map((m) => (
+                  <ModelOption
+                    key={m}
+                    model={m}
+                    active={m === currentModel}
+                    onSelect={select}
+                    onToggleFavorite={toggleFavorite}
+                  />
+                ))}
+              </div>
+            )}
+
+            {favoriteFiltered.length === 0 &&
+              recentFiltered.length === 0 &&
+              allFiltered.length === 0 && (
+                <p className="text-xs text-[#6b7280] text-center py-4">
+                  未找到模型，请先在设置中同步模型列表
+                </p>
+              )}
           </div>
         </div>
       )}
@@ -133,21 +162,40 @@ function ModelOption({
   model,
   active,
   onSelect,
+  starred,
+  onToggleFavorite,
 }: {
   model: string;
   active: boolean;
   onSelect: (m: string) => void;
+  starred?: boolean;
+  onToggleFavorite?: (e: React.MouseEvent, model: string) => void;
 }) {
   return (
-    <button
-      onClick={() => onSelect(model)}
-      className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-        active
-          ? 'bg-[#f5f3ff] text-[#4f46e5] font-medium'
-          : 'text-[#374151] hover:bg-[#f9fafb]'
-      }`}
-    >
-      {model}
-    </button>
+    <div className="flex items-center">
+      <button
+        onClick={() => onSelect(model)}
+        className={`flex-1 text-left px-3 py-2 text-xs transition-colors ${
+          active
+            ? 'bg-[#f5f3ff] text-[#4f46e5] font-medium'
+            : 'text-[#374151] hover:bg-[#f9fafb]'
+        }`}
+      >
+        {model}
+      </button>
+      {onToggleFavorite && (
+        <button
+          onClick={(e) => onToggleFavorite(e, model)}
+          className={`px-2 py-2 shrink-0 transition-colors ${
+            starred
+              ? 'text-amber-500'
+              : 'text-[#d1d5db] hover:text-amber-400'
+          }`}
+          title={starred ? '取消常用' : '加入常用'}
+        >
+          <Star size={12} fill={starred ? 'currentColor' : 'none'} />
+        </button>
+      )}
+    </div>
   );
 }

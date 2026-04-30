@@ -33,7 +33,11 @@ export default function InputArea() {
     setText('');
     const imgs = [...images];
     setImages([]);
-    await sendMessage(trimmed, imgs.length > 0 ? imgs : undefined);
+    try {
+      await sendMessage(trimmed, imgs.length > 0 ? imgs : undefined);
+    } catch (err) {
+      console.error('sendMessage error:', err);
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -186,6 +190,7 @@ export default function InputArea() {
 
           {/* Send */}
           <button
+            title="发送"
             onClick={handleSend}
             disabled={
               state.isLoading ||
