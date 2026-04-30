@@ -238,12 +238,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const model = conv?.model ?? state.config.model;
         const endpoint = state.config.endpoint.replace(/\/$/, '');
 
-        const res = await fetch(`${endpoint}/v1/messages`, {
+        const res = await fetch(`${endpoint}/v1/chat/completions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${state.config.apiKey}`,
-            'anthropic-version': '2023-06-01',
           },
           body: JSON.stringify({
             model,
@@ -258,7 +257,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         }
 
         const data = await res.json();
-        const text: string = data?.content?.[0]?.text ?? '';
+        const text: string = data?.choices?.[0]?.message?.content ?? '';
 
         const assistantMsg: Message = {
           id: generateId(),
