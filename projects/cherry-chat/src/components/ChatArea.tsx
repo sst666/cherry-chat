@@ -9,8 +9,8 @@ export default function ChatArea() {
 
   return (
     <div className="flex flex-col flex-1 min-w-0 h-full bg-white">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-[#e5e7eb] shrink-0">
+      {/* Top bar — hidden on mobile (hamburger is in App.tsx) */}
+      <div className="hidden md:flex items-center justify-between px-5 py-3 border-b border-[#e5e7eb] shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <MessageSquare size={16} className="text-[#6b7280] shrink-0" />
           <h1 className="text-sm font-medium text-[#111827] truncate">

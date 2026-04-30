@@ -85,14 +85,14 @@ export default function SettingsPanel() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center sm:items-start sm:pt-[10vh]"
       style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => {
         if (e.target === e.currentTarget)
           dispatch({ type: 'TOGGLE_SETTINGS' });
       }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl w-full sm:max-w-md sm:mx-4 overflow-hidden flex flex-col max-h-screen sm:max-h-[80vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb]">
           <h2 className="text-base font-semibold text-[#111827]">API 设置</h2>
@@ -105,7 +105,7 @@ export default function SettingsPanel() {
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-4">
+        <div className="px-4 sm:px-6 py-5 space-y-4 overflow-y-auto flex-1">
           {/* Endpoint */}
           <div>
             <label className="block text-xs font-medium text-[#374151] mb-1.5">

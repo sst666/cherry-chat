@@ -19,6 +19,7 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -29,6 +30,10 @@ body {
   padding: 0;
   height: 100vh;
   overflow: hidden;
+  /* Prevent iOS bounce scroll / pull-to-refresh */
+  overscroll-behavior: none;
+  /* Fix iOS Safari bottom bar issue */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 #root {
