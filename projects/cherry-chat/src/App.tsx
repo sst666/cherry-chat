@@ -25,7 +25,7 @@ export default function App() {
             fixed inset-y-0 left-0 z-40
             transform transition-transform duration-200 ease-out
             md:relative md:transform-none md:z-auto
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 pointer-events-none md:pointer-events-auto'}
           `}
         >
           <Sidebar />
