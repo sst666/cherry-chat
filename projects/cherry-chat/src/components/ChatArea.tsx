@@ -2,7 +2,6 @@ import { MessageSquare, Sparkles } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
 import MessageList from './MessageList';
 import InputArea from './InputArea';
-import ModelSelector from './ModelSelector';
 
 export default function ChatArea() {
   const { state, dispatch, currentConversation } = useChatContext();
@@ -18,7 +17,6 @@ export default function ChatArea() {
               ?.title ?? 'New Conversation'}
           </h1>
         </div>
-        <ModelSelector />
       </div>
 
       {/* Model quick-switch bar: favorites + recent */}

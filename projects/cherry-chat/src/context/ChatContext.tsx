@@ -39,6 +39,7 @@ interface State {
   isLoading: boolean;
   settingsOpen: boolean;
   searchQuery: string;
+  inputText: string;
 }
 
 type Action =
@@ -55,7 +56,9 @@ type Action =
   | { type: 'SET_MODEL'; payload: string }
   | { type: 'SET_MODELS'; payload: string[] }
   | { type: 'TOGGLE_FAVORITE_MODEL'; payload: string }
-  | { type: 'CLEAR_ATTACHMENTS' };
+  | { type: 'CLEAR_ATTACHMENTS' }
+  | { type: 'DELETE_MESSAGE'; payload: { convId: string; messageId: string } }
+  | { type: 'SET_INPUT_TEXT'; payload: string };
 
 function createConversation(model: string): Conversation {
   const now = Date.now();
@@ -160,6 +163,16 @@ function reducer(state: State, action: Action): State {
       saveJson(LS_CONVERSATIONS, conversations);
       return { ...state, conversations };
     }
+    case 'DELETE_MESSAGE': {
+      const conversations = state.conversations.map((c) => {
+        if (c.id !== action.payload.convId) return c;
+        return { ...c, messages: c.messages.filter((m) => m.id !== action.payload.messageId) };
+      });
+      saveJson(LS_CONVERSATIONS, conversations);
+      return { ...state, conversations };
+    }
+    case 'SET_INPUT_TEXT':
+      return { ...state, inputText: action.payload };
     default:
       return state;
   }
@@ -171,6 +184,8 @@ interface ChatContextValue {
   currentConversation: Conversation | null;
   sendMessage: (content: string, images?: string[]) => Promise<void>;
   fetchModels: (endpoint?: string, apiKey?: string) => Promise<string[]>;
+  regenerateMessage: (convId: string, messageId: string) => Promise<void>;
+  editMessage: (content: string) => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -200,6 +215,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       isLoading: false,
       settingsOpen: !config.apiKey,
       searchQuery: '',
+      inputText: '',
     };
   });
 
@@ -333,6 +349,87 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     [state.config]
   );
 
+  const regenerateMessage = useCallback(
+    async (convId: string, messageId: string): Promise<void> => {
+      // Remove the message to regenerate and its following messages
+      const conv = state.conversations.find((c) => c.id === convId);
+      if (!conv) return;
+      const msgIdx = conv.messages.findIndex((m) => m.id === messageId);
+      if (msgIdx === -1) return;
+      // Remove the target message and all after it
+      const trimmedMessages = conv.messages.slice(0, msgIdx);
+      const updatedConversations = state.conversations.map((c) =>
+        c.id === convId ? { ...c, messages: trimmedMessages } : c
+      );
+      saveJson(LS_CONVERSATIONS, updatedConversations);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      try {
+        const history = trimmedMessages;
+        const apiMessages = history.map((m) => {
+          if (m.images && m.images.length > 0) {
+            const contentParts: unknown[] = m.images.map((img) => ({
+              type: 'image_url',
+              image_url: { url: img },
+            }));
+            if (m.content) {
+              contentParts.unshift({ type: 'text', text: m.content });
+            }
+            return { role: m.role, content: contentParts };
+          }
+          return { role: m.role, content: m.content };
+        });
+        const model = conv.model ?? state.config.model;
+        const endpoint = state.config.endpoint.replace(/\/$/, '');
+        const res = await fetch(`${endpoint}/v1/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${state.config.apiKey}`,
+          },
+          body: JSON.stringify({ model, max_tokens: 4096, messages: apiMessages }),
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`API error ${res.status}: ${err}`);
+        }
+        const data = await res.json();
+        const text: string = data?.choices?.[0]?.message?.content ?? '';
+        const assistantMsg: Message = {
+          id: generateId(),
+          role: 'assistant',
+          content: text,
+          timestamp: Date.now(),
+        };
+        const finalConversations = updatedConversations.map((c) =>
+          c.id === convId ? { ...c, messages: [...c.messages, assistantMsg] } : c
+        );
+        saveJson(LS_CONVERSATIONS, finalConversations);
+        dispatch({ type: 'SET_LOADING', payload: false });
+        dispatch({ type: 'ADD_RECENT_MODEL', payload: model });
+      } catch (err) {
+        const errorMsg: Message = {
+          id: generateId(),
+          role: 'assistant',
+          content: `Error: ${err instanceof Error ? err.message : String(err)}`,
+          timestamp: Date.now(),
+        };
+        const finalConversations = updatedConversations.map((c) =>
+          c.id === convId ? { ...c, messages: [...c.messages, errorMsg] } : c
+        );
+        saveJson(LS_CONVERSATIONS, finalConversations);
+        dispatch({ type: 'SET_LOADING', payload: false });
+      }
+    },
+    [state.conversations, state.config]
+  );
+
+  const editMessage = useCallback(
+    (content: string): void => {
+      dispatch({ type: 'SET_INPUT_TEXT', payload: content });
+    },
+    []
+  );
+
   return (
     <ChatContext.Provider
       value={{
@@ -341,6 +438,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         currentConversation,
         sendMessage,
         fetchModels,
+        regenerateMessage,
+        editMessage,
       }}
     >
       {children}

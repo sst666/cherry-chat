@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, RefreshCw, Edit3 } from 'lucide-react';
+import { useChatContext } from '../context/ChatContext';
 import type { Message } from '../types';
 
 interface Props {
@@ -14,8 +15,7 @@ function renderMarkdown(text: string): string {
 
   html = html.replace(
     /```(\w*)\n?([\s\S]*?)```/g,
-    (_m, _lang, code) =>
-      `<pre><code>${code.trim()}</code></pre>`
+    (_m, _lang, code) => `<pre><code>${code.trim()}</code></pre>`
   );
 
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -56,13 +56,41 @@ function renderMarkdown(text: string): string {
 }
 
 export default function MessageBubble({ message }: Props) {
+  const { state, dispatch, regenerateMessage, editMessage } = useChatContext();
   const [copied, setCopied] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const isUser = message.role === 'user';
+
+  const currentConv = state.conversations.find(
+    (c) => c.id === state.currentConvId
+  );
+  const isLastAssistant =
+    !isUser &&
+    currentConv?.messages.slice(-1)[0]?.id === message.id;
 
   async function handleCopy() {
     await navigator.clipboard.writeText(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleRegenerate() {
+    if (!state.currentConvId || state.isLoading) return;
+    setRegenerating(true);
+    try {
+      await regenerateMessage(state.currentConvId, message.id);
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
+  function handleEdit() {
+    if (!isUser || state.isLoading) return;
+    editMessage(message.content);
+    dispatch({
+      type: 'DELETE_MESSAGE',
+      payload: { convId: state.currentConvId!, messageId: message.id },
+    });
   }
 
   return (
@@ -82,7 +110,7 @@ export default function MessageBubble({ message }: Props) {
         </div>
       )}
 
-      {/* Bubble */}
+      {/* Bubble + Actions column */}
       <div
         className={`flex flex-col gap-1 max-w-[85%] sm:max-w-[75%] ${
           isUser ? 'items-end' : 'items-start'
@@ -102,6 +130,7 @@ export default function MessageBubble({ message }: Props) {
           </div>
         )}
 
+        {/* Message content */}
         {message.content && (
           <div
             className={`relative px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl text-sm leading-relaxed ${
@@ -111,9 +140,7 @@ export default function MessageBubble({ message }: Props) {
             }`}
             style={
               isUser
-                ? {
-                    background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                  }
+                ? { background: 'linear-gradient(135deg, #4f46e5, #6366f1)' }
                 : undefined
             }
           >
@@ -130,12 +157,13 @@ export default function MessageBubble({ message }: Props) {
           </div>
         )}
 
-        {/* Actions — always visible on touch devices, hover on desktop */}
+        {/* Action buttons */}
         <div
-          className={`flex items-center gap-1 transition-opacity ${
+          className={`flex items-center gap-1 flex-wrap sm:flex-nowrap ${
             isUser ? 'group-hover:opacity-100' : 'group-hover:opacity-100'
           } sm:opacity-0`}
         >
+          {/* Copy */}
           <button
             onClick={handleCopy}
             className="flex items-center gap-1 px-2 py-1 text-[10px] text-[#6b7280] hover:text-[#111827] hover:bg-[#f3f4f6] rounded transition-colors"
@@ -145,8 +173,34 @@ export default function MessageBubble({ message }: Props) {
             ) : (
               <Copy size={11} />
             )}
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? '已复制' : '复制'}
           </button>
+
+          {/* Edit (user messages only) */}
+          {isUser && (
+            <button
+              onClick={handleEdit}
+              disabled={state.isLoading}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] text-[#6b7280] hover:text-[#4f46e5] hover:bg-[#f5f3ff] rounded transition-colors disabled:opacity-40"
+            >
+              <Edit3 size={11} />
+              编辑
+            </button>
+          )}
+
+          {/* Regenerate (last assistant message only) */}
+          {!isUser && isLastAssistant && (
+            <button
+              onClick={handleRegenerate}
+              disabled={state.isLoading || regenerating}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] text-[#6b7280] hover:text-[#4f46e5] hover:bg-[#f5f3ff] rounded transition-colors disabled:opacity-40"
+            >
+              <RefreshCw size={11} className={regenerating ? 'animate-spin' : ''} />
+              重新生成
+            </button>
+          )}
+
+          {/* Timestamp */}
           {!isUser && (
             <span className="text-[10px] text-[#9ca3af] px-1">
               {new Date(message.timestamp).toLocaleTimeString([], {

@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Send, Image, FileText, X } from 'lucide-react';
 import { useChatContext } from '../context/ChatContext';
 import { usePdf } from '../hooks/usePdf';
+import ModelSelector from './ModelSelector';
 
 export default function InputArea() {
   const { state, dispatch, sendMessage } = useChatContext();
@@ -12,6 +13,15 @@ export default function InputArea() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const { pdfToImages } = usePdf();
+
+  // Sync with context inputText (set when user clicks "编辑")
+  useEffect(() => {
+    if (state.inputText) {
+      setText(state.inputText);
+      dispatch({ type: 'SET_INPUT_TEXT', payload: '' });
+      textareaRef.current?.focus();
+    }
+  }, [state.inputText, dispatch]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -94,7 +104,7 @@ export default function InputArea() {
   );
 
   return (
-    <div className="shrink-0 px-4 pb-4 pt-2">
+    <div className="shrink-0 px-3 sm:px-4 pb-4 pt-2">
       <div
         className={`border rounded-2xl bg-white transition-all ${
           isDragging
@@ -116,7 +126,7 @@ export default function InputArea() {
                 <img
                   src={img}
                   alt={`preview-${i}`}
-                  className="w-16 h-16 object-cover rounded-lg border border-[#e5e7eb]"
+                  className="w-14 h-14 object-cover rounded-lg border border-[#e5e7eb]"
                 />
                 <button
                   onClick={() =>
@@ -131,23 +141,49 @@ export default function InputArea() {
           </div>
         )}
 
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Message CherryChat… (Shift+Enter for newline)"
-          rows={1}
-          className="w-full px-4 py-3 text-sm text-[#111827] placeholder-[#9ca3af] bg-transparent outline-none"
-          style={{ minHeight: 44, maxHeight: 200 }}
-          disabled={state.isLoading}
-        />
+        {/* Input row: textarea + model selector + send */}
+        <div className="flex items-end gap-2 px-3 py-2">
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="输入消息... (Shift+Enter 换行)"
+            rows={1}
+            className="flex-1 text-sm text-[#111827] placeholder-[#9ca3af] bg-transparent outline-none resize-none"
+            style={{ minHeight: 44, maxHeight: 200 }}
+            disabled={state.isLoading}
+          />
 
-        {/* Toolbar */}
+          {/* Model selector inline with input */}
+          <div className="shrink-0 mb-0.5">
+            <ModelSelector />
+          </div>
+
+          {/* Send button */}
+          <button
+            title="发送"
+            onClick={handleSend}
+            disabled={
+              state.isLoading || (!text.trim() && images.length === 0)
+            }
+            className="w-9 h-9 flex items-center justify-center rounded-xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 mb-0.5"
+            style={{ background: '#4f46e5' }}
+            onMouseEnter={(e) => {
+              if (!e.currentTarget.disabled)
+                e.currentTarget.style.background = '#4338ca';
+            }}
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = '#4f46e5')
+            }
+          >
+            <Send size={15} />
+          </button>
+        </div>
+
+        {/* Attachment toolbar */}
         <div className="flex items-center justify-between px-3 pb-2.5">
           <div className="flex items-center gap-1">
-            {/* Image upload */}
             <input
               ref={imageInputRef}
               type="file"
@@ -162,12 +198,11 @@ export default function InputArea() {
             <button
               onClick={() => imageInputRef.current?.click()}
               className="p-1.5 text-[#6b7280] hover:text-[#4f46e5] hover:bg-[#f5f3ff] rounded-lg transition-colors"
-              title="Attach image"
+              title="添加图片"
             >
               <Image size={16} />
             </button>
 
-            {/* PDF upload */}
             <input
               ref={pdfInputRef}
               type="file"
@@ -182,32 +217,11 @@ export default function InputArea() {
             <button
               onClick={() => pdfInputRef.current?.click()}
               className="p-1.5 text-[#6b7280] hover:text-[#4f46e5] hover:bg-[#f5f3ff] rounded-lg transition-colors"
-              title="Attach PDF"
+              title="添加 PDF"
             >
               <FileText size={16} />
             </button>
           </div>
-
-          {/* Send */}
-          <button
-            title="发送"
-            onClick={handleSend}
-            disabled={
-              state.isLoading ||
-              (!text.trim() && images.length === 0)
-            }
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: '#4f46e5' }}
-            onMouseEnter={(e) => {
-              if (!e.currentTarget.disabled)
-                e.currentTarget.style.background = '#4338ca';
-            }}
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = '#4f46e5')
-            }
-          >
-            <Send size={14} />
-          </button>
         </div>
       </div>
       <p className="text-center text-[10px] text-[#9ca3af] mt-1.5">
